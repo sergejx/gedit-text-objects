@@ -1,0 +1,8 @@
+[Plugin]
+Loader=python3
+Module=text_objects
+IAge=3
+Name=Text Objects
+Description=Vim-like text objects for Gedit
+Authors=Sergej Chodarev
+Copyright=Copyright © 2016 Sergej Chodarev
