@@ -32,9 +32,9 @@ class TextObjectsApp(GObject.Object, Gedit.AppActivatable):
         GObject.Object.__init__(self)
 
     def do_activate(self):
-        self.app.add_accelerator('<Ctrl>g', 'win.text-object')
+        self.app.add_accelerator('<Ctrl>g', 'win.text-object-delete')
         self.menu_ext = self.extend_menu("tools-section-1")
-        item = Gio.MenuItem.new(('Delete object'), "win.text-object")
+        item = Gio.MenuItem.new(('Delete object'), "win.text-object-delete")
         self.menu_ext.append_menu_item(item)
 
     def do_deactivate(self):
@@ -50,15 +50,23 @@ class TextObjectsWin(GObject.Object, Gedit.WindowActivatable):
         GObject.Object.__init__(self)
 
     def do_activate(self):
-        print("win")
-        action = Gio.SimpleAction.new('text-object')
+        action = Gio.SimpleAction.new('text-object-delete')
         action.connect('activate', self.activate)
-        # print(action.get_enabled())
         self.window.add_action(action)
-        # print(action.get_enabled())
 
     def do_deactivate(self):
         pass
 
     def activate(self, action, parameter):
-        print(action, parameter)
+        document = self.window.get_active_view().get_buffer()
+        insert = document.get_insert()
+        itr = document.get_iter_at_mark(insert)
+        if itr.inside_word() or itr.ends_word():
+            end = itr.copy()
+            print(itr.get_offset())
+            if not itr.starts_word():
+                itr.backward_word_start()
+            if not end.ends_word():
+                end.forward_word_end()
+            print(itr.get_offset(), end.get_offset())
+            document.delete(itr, end)
