@@ -58,6 +58,9 @@ class TextObjectsWin(GObject.Object, Gedit.WindowActivatable):
         pass
 
     def activate(self, action, parameter):
+        self.delete_iword()
+
+    def delete_iword(self):
         document = self.window.get_active_view().get_buffer()
         insert = document.get_insert()
         itr = document.get_iter_at_mark(insert)
