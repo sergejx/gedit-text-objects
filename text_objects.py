@@ -20,7 +20,7 @@
 #  Foundation, Inc., 59 Temple Place, Suite 330,
 #  Boston, MA 02111-1307, USA.
 
-from gi.repository import Gedit, Gio, GLib, GObject, Gtk
+from gi.repository import Gdk, Gedit, Gio, GObject, Gtk
 
 
 class TextObjectsApp(GObject.Object, Gedit.AppActivatable):
@@ -32,6 +32,7 @@ class TextObjectsApp(GObject.Object, Gedit.AppActivatable):
         GObject.Object.__init__(self)
 
     def do_activate(self):
+        # Can use: e, r, y, g, j, b, m
         self.app.add_accelerator('<Ctrl>g', 'win.text-object-delete')
         self.menu_ext = self.extend_menu("tools-section-1")
         item = Gio.MenuItem.new(('Delete object'), "win.text-object-delete")
@@ -58,7 +59,15 @@ class TextObjectsWin(GObject.Object, Gedit.WindowActivatable):
         pass
 
     def activate(self, action, parameter):
-        self.delete_iword()
+        view = self.window.get_active_view()
+        popup = CommandCompositionWidget(view)
+        parent = view
+        while not isinstance(parent, Gtk.Overlay):
+            parent = parent.get_parent()
+        print(parent, parent.get_name())
+        parent.add_overlay(popup)
+        popup.show_all()
+        popup.entry.grab_focus()
 
     def delete_iword(self):
         document = self.window.get_active_view().get_buffer()
@@ -73,3 +82,118 @@ class TextObjectsWin(GObject.Object, Gedit.WindowActivatable):
                 end.forward_word_end()
             print(itr.get_offset(), end.get_offset())
             document.delete(itr, end)
+
+
+class CommandCompositionWidget(Gtk.Grid):
+    def __init__(self, view):
+        self.view = view
+        Gtk.Grid.__init__(self, name='text-object-popup', valign=Gtk.Align.END)
+
+        op_label = Gtk.Label(label="<b>Ctrl+G</b> (delete) ", use_markup=True,
+                             margin_left=8)
+        self.attach(op_label, 0, 0, 1, 1)
+
+        help_text = "next: <b>a</b>n | <b>i</b>nner" \
+                    "  +  <b>w</b>ord | <b>l</b>ine | <b>p</b>aragraph"
+        help_label = Gtk.Label(label=help_text, use_markup=True,
+                               halign=Gtk.Align.START, margin_left=8)
+        self.attach(help_label, 0, 1, 2, 1)
+
+        self.entry = Gtk.Entry(name="text-object-entry", has_frame=False)
+
+        self.entry.connect('key-press-event', self.on_key_pressed)
+        self.attach(self.entry, 1, 0, 1, 1)
+
+        style = Gtk.CssProvider()
+        style.load_from_data(bytes("""
+        #text-object-popup {
+            background-color: #e9b96e;
+            padding: 6px;
+        }
+        #text-object-entry {
+            background-image: none;
+        }
+        """, 'utf-8'))
+        self.get_style_context().add_provider(style,
+                                              Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+        self.entry.get_style_context().add_provider(style,
+                                                    Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+
+        self.parser = TextObjectParser()
+
+    def on_key_pressed(self, widget, event):
+        key = Gdk.keyval_name(event.keyval)
+        print("key: ", key)
+        result = self.parser.next_symbol(key)
+        if result is not None:
+            text, finished = result
+            self.entry.insert_text(text + " ", self.entry.get_position())
+            self.entry.set_position(-1)
+            if finished:
+                print(self.parser.expression)
+                if self.parser.expression == "iw":
+                    delete_inner_word(self.view.get_buffer())
+                elif self.parser.expression == "is":
+                    delete_inner_sentence(self.view.get_buffer())
+            return True
+
+
+class TextObjectParser:
+    modifiers = {
+        "a": "a",
+        "i": "inner"
+    }
+
+    objects = {
+        "w": "word",
+        "s": "sentence",
+        "l": "line",
+        "p": "paragraph"
+    }
+
+    def __init__(self):
+        self.state = 1
+        self.expression = ""
+
+    def next_symbol(self, symbol: str) -> (str, bool):
+        if self.state == 1:
+            if symbol in self.modifiers:
+                self.expression += symbol
+                self.state = 2
+                return self.modifiers[symbol], False
+            else:
+                return None
+        elif self.state == 2:
+            if symbol in self.objects:
+                self.expression += symbol
+                return self.objects[symbol], True
+            else:
+                return None
+
+
+def delete_inner_word(document):
+    insert = document.get_insert()
+    start = document.get_iter_at_mark(insert)
+    if start.inside_word() or start.ends_word():
+        end = start.copy()
+        print(start.get_offset())
+        if not start.starts_word():
+            start.backward_word_start()
+        if not end.ends_word():
+            end.forward_word_end()
+        print(start.get_offset(), end.get_offset())
+        document.delete(start, end)
+
+
+def delete_inner_sentence(document):
+    insert = document.get_insert()
+    start = document.get_iter_at_mark(insert)
+    if start.inside_sentence() or start.ends_sentence():
+        end = start.copy()
+        print(start.get_offset())
+        if not start.starts_sentence():
+            start.backward_sentence_start()
+        if not end.ends_sentence():
+            end.forward_sentence_end()
+        print(start.get_offset(), end.get_offset())
+        document.delete(start, end)
