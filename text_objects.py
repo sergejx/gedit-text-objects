@@ -89,8 +89,9 @@ class CommandCompositionWidget(Gtk.Grid):
         self.view = view
         Gtk.Grid.__init__(self, name='text-object-popup', valign=Gtk.Align.END)
 
-        op_label = Gtk.Label(label="<b>Ctrl+G</b> (delete) ", use_markup=True,
-                             margin_left=8)
+        op_label = Gtk.Label(label="Delete (<b>Ctrl+G</b>)", use_markup=True,
+                             margin_left=8, margin_top=4)
+        op_label.get_style_context().add_class('command-part')
         self.attach(op_label, 0, 0, 1, 1)
 
         help_text = "next: <b>a</b>n | <b>i</b>nner" \
@@ -106,18 +107,21 @@ class CommandCompositionWidget(Gtk.Grid):
 
         style = Gtk.CssProvider()
         style.load_from_data(bytes("""
+        .command-part {
+            background-color: #204a87;
+            color: white;
+            border-radius: 4px;
+            padding: 2px 4px;
+        }
         #text-object-popup {
             background-color: #e9b96e;
-            padding: 6px;
         }
         #text-object-entry {
             background-image: none;
         }
         """, 'utf-8'))
-        self.get_style_context().add_provider(style,
-                                              Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
-        self.entry.get_style_context().add_provider(style,
-                                                    Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+        Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(),
+                style, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
 
         self.parser = TextObjectParser()
 
