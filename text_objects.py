@@ -61,10 +61,9 @@ class TextObjectsWin(GObject.Object, Gedit.WindowActivatable):
         parent = view
         while not isinstance(parent, Gtk.Overlay):
             parent = parent.get_parent()
-        print(parent, parent.get_name())
         parent.add_overlay(popup)
         popup.show_all()
-        popup.entry.grab_focus()
+        popup.activate()
 
     def delete_iword(self):
         document = self.window.get_active_view().get_buffer()
@@ -81,26 +80,28 @@ class TextObjectsWin(GObject.Object, Gedit.WindowActivatable):
             document.delete(itr, end)
 
 
-class CommandCompositionWidget(Gtk.Grid):
+class CommandCompositionWidget(Gtk.Box):
+    HELP_TEXT = "next: <b>a</b>n | <b>i</b>nner" \
+                "  +  <b>w</b>ord | <b>l</b>ine | <b>p</b>aragraph"
+
     def __init__(self, view):
         self.view = view
-        Gtk.Grid.__init__(self, name='text-object-popup', valign=Gtk.Align.END)
+        super(CommandCompositionWidget, self).__init__(name='text-object-popup')
+        self.set_orientation(Gtk.Orientation.VERTICAL)
+        self.set_valign(Gtk.Align.END)
+        self.set_can_focus(True)
+        # self.set_focus_on_click(True)
+        self.connect('key-press-event', self.on_key_pressed)
 
-        op_label = Gtk.Label(label="Delete (<b>Ctrl+G</b>)", use_markup=True,
-                             margin_left=8, margin_top=4)
-        op_label.get_style_context().add_class('command-part')
-        self.attach(op_label, 0, 0, 1, 1)
+        self.command_box = Gtk.Box(Gtk.Orientation.HORIZONTAL, 4,
+                                   margin_left=8, margin_top=4)
+        self.pack_start(self.command_box, False, False, 0)
 
-        help_text = "next: <b>a</b>n | <b>i</b>nner" \
-                    "  +  <b>w</b>ord | <b>l</b>ine | <b>p</b>aragraph"
-        help_label = Gtk.Label(label=help_text, use_markup=True,
+        self._add_command_part("Delete (<b>Ctrl+G</b>)")
+
+        help_label = Gtk.Label(label=self.HELP_TEXT, use_markup=True,
                                halign=Gtk.Align.START, margin_left=8)
-        self.attach(help_label, 0, 1, 2, 1)
-
-        self.entry = Gtk.Entry(name="text-object-entry", has_frame=False)
-
-        self.entry.connect('key-press-event', self.on_key_pressed)
-        self.attach(self.entry, 1, 0, 1, 1)
+        self.pack_start(help_label, False, False, 0)
 
         style = Gtk.CssProvider()
         style.load_from_data(bytes("""
@@ -122,21 +123,31 @@ class CommandCompositionWidget(Gtk.Grid):
 
         self.parser = TextObjectParser()
 
+    def activate(self):
+        self.grab_focus()
+
+    def _add_command_part(self, text : str):
+        if text.find("<b>") == -1:
+            text = "<b>%s</b>%s" % (text[0], text[1:])
+        label = Gtk.Label(label=text, use_markup=True)
+        label.get_style_context().add_class('command-part')
+        self.command_box.pack_start(label, False, False, 0)
+        label.show()
+
     def on_key_pressed(self, widget, event):
         key = Gdk.keyval_name(event.keyval)
         print("key: ", key)
         result = self.parser.next_symbol(key)
         if result is not None:
             text, finished = result
-            self.entry.insert_text(text + " ", self.entry.get_position())
-            self.entry.set_position(-1)
+            self._add_command_part(text)
             if finished:
                 print(self.parser.expression)
                 if self.parser.expression == "iw":
                     delete_inner_word(self.view.get_buffer())
                 elif self.parser.expression == "is":
                     delete_inner_sentence(self.view.get_buffer())
-            return True
+        return True
 
 
 class TextObjectParser:
