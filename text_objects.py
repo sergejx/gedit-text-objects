@@ -34,9 +34,6 @@ class TextObjectsApp(GObject.Object, Gedit.AppActivatable):
     def do_activate(self):
         # Can use: e, r, y, g, j, b, m
         self.app.add_accelerator('<Ctrl>g', 'win.text-object-delete')
-        self.menu_ext = self.extend_menu("tools-section-1")
-        item = Gio.MenuItem.new(('Delete object'), "win.text-object-delete")
-        self.menu_ext.append_menu_item(item)
 
     def do_deactivate(self):
         pass
