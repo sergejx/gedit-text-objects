@@ -23,6 +23,22 @@
 from gi.repository import Gdk, Gedit, Gio, GObject, Gtk
 
 
+class TextObjectsApp(GObject.Object, Gedit.AppActivatable):
+    __gtype_name__ = 'TextObjectsApp'
+
+    app = GObject.property(type=Gedit.App)
+
+    def __init__(self):
+        GObject.Object.__init__(self)
+
+    def do_activate(self):
+        # Can use: e, r, y, g, j, b, m
+        self.app.add_accelerator('<Ctrl>g', 'win.text-object-delete')
+
+    def do_deactivate(self):
+        pass
+
+
 class TextObjectsWin(GObject.Object, Gedit.WindowActivatable):
     __gtype_name__ = 'TextObjectsWin'
 
@@ -32,32 +48,16 @@ class TextObjectsWin(GObject.Object, Gedit.WindowActivatable):
         GObject.Object.__init__(self)
 
     def do_activate(self):
-        GObject.signal_new('type-object-operation', Gedit.View,
-                           GObject.SignalFlags.ACTION,
-                           GObject.TYPE_BOOLEAN, [GObject.TYPE_STRING])
-
-        style = Gtk.CssProvider()
-        style.load_from_data(bytes("""
-            @binding-set text-object-operations {
-                bind "<alt>d" { "type-object-operation" ("d") };
-            }
-
-            GeditView {
-                gtk-key-bindings: text-object-operations;
-            }
-            """, 'utf-8'))
-        Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(),
-                                                 style,
-                                                 Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
-
-        self.window.connect('tab-added',
-                            lambda window, tab: tab.get_view().connect(
-                                'type-object-operation', self.activate))
+        action = Gio.SimpleAction.new('text-object-delete')
+        action.connect('activate', self.activate)
+        self.window.add_action(action)
 
     def do_deactivate(self):
         pass
 
-    def activate(self, view, parameter):
+    def activate(self, action, parameter):
+        view = self.window.get_active_view()
+
         revealer = Gtk.Revealer(valign=Gtk.Align.END)
         revealer.set_transition_type(Gtk.RevealerTransitionType.SLIDE_UP)
 
