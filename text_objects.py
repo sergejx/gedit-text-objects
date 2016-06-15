@@ -75,7 +75,7 @@ class TextObjectsWin(GObject.Object, Gedit.WindowActivatable):
 
 class CommandCompositionWidget(Gtk.Box):
     HELP_TEXT = "next: <b>a</b>n | <b>i</b>nner" \
-                "  +  <b>w</b>ord | <b>l</b>ine | <b>p</b>aragraph"
+                "  +  <b>w</b>ord | <b>l</b>ine | <b>s</b>entence | <b>p</b>aragraph"
 
     def __init__(self, view, revealer):
         self.view = view
@@ -150,9 +150,17 @@ class CommandCompositionWidget(Gtk.Box):
             if finished:
                 print(self.parser.expression)
                 if self.parser.expression == "iw":
-                    delete_inner_word(self.view.get_buffer())
+                    delete_word(self.view.get_buffer(), True)
+                if self.parser.expression == "aw":
+                    delete_word(self.view.get_buffer(), False)
                 elif self.parser.expression == "is":
-                    delete_inner_sentence(self.view.get_buffer())
+                    delete_sentence(self.view.get_buffer(), True)
+                elif self.parser.expression == "as":
+                    delete_sentence(self.view.get_buffer(), False)
+                elif self.parser.expression == "il":
+                    delete_line(self.view.get_buffer(), True)
+                elif self.parser.expression == "al":
+                    delete_line(self.view.get_buffer(), False)
                 self.deactivate(slow=True)
         return True
 
@@ -190,7 +198,7 @@ class TextObjectParser:
                 return None
 
 
-def delete_inner_word(document):
+def delete_word(document, inner):
     insert = document.get_insert()
     start = document.get_iter_at_mark(insert)
     if start.inside_word() or start.ends_word():
@@ -200,13 +208,15 @@ def delete_inner_word(document):
             start.backward_word_start()
         if not end.ends_word():
             end.forward_word_end()
+        if not inner:
+            end.forward_find_char(lambda ch, d: not ch.isspace())
         print(start.get_offset(), end.get_offset())
         document.delete(start, end)
 
 
-def delete_inner_sentence(document):
+def delete_sentence(document, inner):
     insert = document.get_insert()
-    start = document.get_iter_at_mark(insert)
+    start = document.get_iter_at_mark(insert)  # type: Gtk.TextIter
     if start.inside_sentence() or start.ends_sentence():
         end = start.copy()
         print(start.get_offset())
@@ -214,5 +224,23 @@ def delete_inner_sentence(document):
             start.backward_sentence_start()
         if not end.ends_sentence():
             end.forward_sentence_end()
+        if not inner:
+            end.forward_find_char(lambda ch, d: not ch.isspace())
         print(start.get_offset(), end.get_offset())
         document.delete(start, end)
+
+
+def delete_line(document, inner):
+    insert = document.get_insert()
+    start = document.get_iter_at_mark(insert)  # type: Gtk.TextIter
+    end = start.copy()  # type: Gtk.TextIter
+
+    if not start.starts_line():
+        start.backward_line()
+    if not end.ends_line():
+        if inner:
+            end.forward_to_line_end()
+        else:
+            end.forward_line()
+    print(start.get_offset(), end.get_offset())
+    document.delete(start, end)
