@@ -107,6 +107,7 @@ class CommandCompositionWidget(Gtk.Box):
         }
         #text-object-popup {
             background-color: #e9b96e;
+            color: #2e3436;
         }
         #text-object-entry {
             background-image: none;
