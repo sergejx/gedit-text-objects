@@ -72,20 +72,6 @@ class TextObjectsWin(GObject.Object, Gedit.WindowActivatable):
 
         popup.activate()
 
-    def delete_iword(self):
-        document = self.window.get_active_view().get_buffer()
-        insert = document.get_insert()
-        itr = document.get_iter_at_mark(insert)
-        if itr.inside_word() or itr.ends_word():
-            end = itr.copy()
-            print(itr.get_offset())
-            if not itr.starts_word():
-                itr.backward_word_start()
-            if not end.ends_word():
-                end.forward_word_end()
-            print(itr.get_offset(), end.get_offset())
-            document.delete(itr, end)
-
 
 class CommandCompositionWidget(Gtk.Box):
     HELP_TEXT = "next: <b>a</b>n | <b>i</b>nner" \
