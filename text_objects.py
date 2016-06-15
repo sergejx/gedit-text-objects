@@ -32,8 +32,7 @@ class TextObjectsApp(GObject.Object, Gedit.AppActivatable):
         GObject.Object.__init__(self)
 
     def do_activate(self):
-        # Can use: e, r, y, g, j, b, m
-        self.app.add_accelerator('<Ctrl>g', 'win.text-object-delete')
+        self.app.add_accelerator('<Ctrl><Shift>d', 'win.text-object-delete')
 
     def do_deactivate(self):
         pass
@@ -91,7 +90,7 @@ class CommandCompositionWidget(Gtk.Box):
                                    margin_left=8, margin_top=4)
         self.pack_start(self.command_box, False, False, 0)
 
-        self._add_command_part("Delete (<b>Ctrl+G</b>)")
+        self._add_command_part("Delete")
 
         help_label = Gtk.Label(label=self.HELP_TEXT, use_markup=True,
                                halign=Gtk.Align.START, margin_left=8)
