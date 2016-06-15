@@ -57,12 +57,19 @@ class TextObjectsWin(GObject.Object, Gedit.WindowActivatable):
 
     def activate(self, action, parameter):
         view = self.window.get_active_view()
-        popup = CommandCompositionWidget(view)
+
+        revealer = Gtk.Revealer(valign=Gtk.Align.END)
+        revealer.set_transition_type(Gtk.RevealerTransitionType.SLIDE_UP)
+
+        popup = CommandCompositionWidget(view, revealer)
+
         parent = view
         while not isinstance(parent, Gtk.Overlay):
             parent = parent.get_parent()
-        parent.add_overlay(popup)
-        popup.show_all()
+        parent.add_overlay(revealer)
+        revealer.add(popup)
+        revealer.show()
+
         popup.activate()
 
     def delete_iword(self):
@@ -84,8 +91,9 @@ class CommandCompositionWidget(Gtk.Box):
     HELP_TEXT = "next: <b>a</b>n | <b>i</b>nner" \
                 "  +  <b>w</b>ord | <b>l</b>ine | <b>p</b>aragraph"
 
-    def __init__(self, view):
+    def __init__(self, view, revealer):
         self.view = view
+        self.revealer = revealer
         super(CommandCompositionWidget, self).__init__(name='text-object-popup')
         self.set_orientation(Gtk.Orientation.VERTICAL)
         self.set_valign(Gtk.Align.END)
@@ -124,7 +132,16 @@ class CommandCompositionWidget(Gtk.Box):
         self.parser = TextObjectParser()
 
     def activate(self):
+        self.show_all()
         self.grab_focus()
+        self.revealer.set_transition_duration(500)
+        self.revealer.set_reveal_child(True)
+
+    def deactivate(self, slow=False):
+        self.view.grab_focus()  # Return focus to the text view
+        if slow:
+            self.revealer.set_transition_duration(4000)
+        self.revealer.set_reveal_child(False)
 
     def _add_command_part(self, text : str):
         if text.find("<b>") == -1:
@@ -137,6 +154,9 @@ class CommandCompositionWidget(Gtk.Box):
     def on_key_pressed(self, widget, event):
         key = Gdk.keyval_name(event.keyval)
         print("key: ", key)
+        if key == "Escape":
+            self.deactivate()
+            return True
         result = self.parser.next_symbol(key)
         if result is not None:
             text, finished = result
@@ -147,6 +167,7 @@ class CommandCompositionWidget(Gtk.Box):
                     delete_inner_word(self.view.get_buffer())
                 elif self.parser.expression == "is":
                     delete_inner_sentence(self.view.get_buffer())
+                self.deactivate(slow=True)
         return True
 
 
