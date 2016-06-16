@@ -20,7 +20,7 @@
 #  Foundation, Inc., 59 Temple Place, Suite 330,
 #  Boston, MA 02111-1307, USA.
 
-from gi.repository import Gedit, Gio, GObject, Gtk
+from gi.repository import Gedit, Gio, GLib, GObject, Gtk
 
 from text_objects.ui import CommandCompositionWidget
 
@@ -34,7 +34,8 @@ class TextObjectsApp(GObject.Object, Gedit.AppActivatable):
         GObject.Object.__init__(self)
 
     def do_activate(self):
-        self.app.add_accelerator('<Ctrl><Shift>d', 'win.text-object-delete')
+        self.app.add_accelerator('<Ctrl><Shift>d', 'win.text-object-operation',
+                                 GLib.Variant.new_string('d'))
 
     def do_deactivate(self):
         pass
@@ -49,7 +50,8 @@ class TextObjectsWin(GObject.Object, Gedit.WindowActivatable):
         GObject.Object.__init__(self)
 
     def do_activate(self):
-        action = Gio.SimpleAction.new('text-object-delete')
+        action = Gio.SimpleAction.new('text-object-operation',
+                                      GLib.VariantType('s'))
         action.connect('activate', self.activate)
         self.window.add_action(action)
 
