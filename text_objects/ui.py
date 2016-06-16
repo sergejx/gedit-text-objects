@@ -22,8 +22,7 @@
 
 from gi.repository import Gtk, Gdk
 
-from text_objects.objects import TextObjectParser, delete_word, \
-    delete_sentence, delete_line
+from text_objects.objects import TextObjectParser
 
 
 class CommandCompositionWidget(Gtk.Box):
@@ -100,23 +99,12 @@ class CommandCompositionWidget(Gtk.Box):
             return True
         result = self.parser.next_symbol(key)
         if result is not None:
-            text, finished = result
+            text, object = result
             self._add_command_part(text)
-            if finished:
-                self.do_operation(self.parser.expression)
+            if object is not None:
+                self.do_operation(object)
                 self.deactivate(slow=True)
         return True
 
     def do_operation(self, text_object):
-        if text_object == "iw":
-            delete_word(self.view.get_buffer(), True)
-        if text_object == "aw":
-            delete_word(self.view.get_buffer(), False)
-        elif text_object == "is":
-            delete_sentence(self.view.get_buffer(), True)
-        elif text_object == "as":
-            delete_sentence(self.view.get_buffer(), False)
-        elif text_object == "il":
-            delete_line(self.view.get_buffer(), True)
-        elif text_object == "al":
-            delete_line(self.view.get_buffer(), False)
+        text_object.delete(self.view.get_buffer())
