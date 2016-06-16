@@ -79,12 +79,10 @@ class CommandCompositionWidget(Gtk.Box):
     def __init__(self, view, revealer):
         self.view = view
         self.revealer = revealer
+        self.key_handler = None
         super(CommandCompositionWidget, self).__init__(name='text-object-popup')
         self.set_orientation(Gtk.Orientation.VERTICAL)
         self.set_valign(Gtk.Align.END)
-        self.set_can_focus(True)
-        # self.set_focus_on_click(True)
-        self.connect('key-press-event', self.on_key_pressed)
 
         self.command_box = Gtk.Box(Gtk.Orientation.HORIZONTAL, 4,
                                    margin_left=8, margin_top=4)
@@ -119,12 +117,15 @@ class CommandCompositionWidget(Gtk.Box):
 
     def activate(self):
         self.show_all()
-        self.grab_focus()
         self.revealer.set_transition_duration(500)
         self.revealer.set_reveal_child(True)
+        # Intercept keyboard input from the TextView
+        self.key_handler = self.view.connect('key-press-event',
+                                             self.on_key_pressed)
 
     def deactivate(self, slow=False):
-        self.view.grab_focus()  # Return focus to the text view
+        # Return keyboard input
+        self.view.disconnect(self.key_handler)
         if slow:
             self.revealer.set_transition_duration(4000)
         self.revealer.set_reveal_child(False)
