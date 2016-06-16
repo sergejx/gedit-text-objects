@@ -20,12 +20,25 @@
 #  Foundation, Inc., 59 Temple Place, Suite 330,
 #  Boston, MA 02111-1307, USA.
 
-from abc import ABCMeta
+from abc import ABCMeta, abstractmethod
 
 
 class TextObject(metaclass=ABCMeta):
     def __init__(self, inner: bool):
         self.inner = inner
+
+    def delete(self, document):
+        bounds = self._prepare_bounds(document)
+        if self.find_object_bounds(*bounds):
+            document.delete(*bounds)
+
+    @abstractmethod
+    def find_object_bounds(self, start, end):
+        """
+        Move iterators to mark start and end of the object.
+        Return True if object is available at the cursor position.
+        """
+        pass
 
     @staticmethod
     def _prepare_bounds(document):
@@ -40,8 +53,7 @@ class TextObject(metaclass=ABCMeta):
 
 
 class Word(TextObject):
-    def delete(self, document):
-        start, end = self._prepare_bounds(document)
+    def find_object_bounds(self, start, end):
         if start.inside_word() or start.ends_word():
             if not start.starts_word():
                 start.backward_word_start()
@@ -49,12 +61,11 @@ class Word(TextObject):
                 end.forward_word_end()
             if not self.inner:
                 end.forward_find_char(lambda ch, d: not ch.isspace())
-            document.delete(start, end)
+            return True
 
 
 class Sentence(TextObject):
-    def delete_sentence(self, document):
-        start, end = self._prepare_bounds(document)
+    def find_object_bounds(self, start, end):
         if start.inside_sentence() or start.ends_sentence():
             if not start.starts_sentence():
                 start.backward_sentence_start()
@@ -62,12 +73,11 @@ class Sentence(TextObject):
                 end.forward_sentence_end()
             if not self.inner:
                 end.forward_find_char(lambda ch, d: not ch.isspace())
-            document.delete(start, end)
+            return True
 
 
 class Line(TextObject):
-    def delete_line(self, document):
-        start, end = self._prepare_bounds(document)
+    def find_object_bounds(self, start, end):
         if not start.starts_line():
             start.backward_line()
         if not end.ends_line():
@@ -75,7 +85,7 @@ class Line(TextObject):
                 end.forward_to_line_end()
             else:
                 end.forward_line()
-        document.delete(start, end)
+        return True
 
 
 class TextObjectParser:
