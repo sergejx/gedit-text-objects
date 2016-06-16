@@ -199,43 +199,43 @@ class TextObjectParser:
                 return None
 
 
-def delete_word(document, inner):
+def prepare_bounds(document):
+    """
+    Give two Gtk.TextIters for marking start and end of text object
+    :rtype: Tuple(Gtk.TreeIter, Gtk.TreeIter)
+    """
     insert = document.get_insert()
     start = document.get_iter_at_mark(insert)
+    end = start.copy()
+    return start, end
+
+
+def delete_word(document, inner):
+    start, end = prepare_bounds(document)
     if start.inside_word() or start.ends_word():
-        end = start.copy()
-        print(start.get_offset())
         if not start.starts_word():
             start.backward_word_start()
         if not end.ends_word():
             end.forward_word_end()
         if not inner:
             end.forward_find_char(lambda ch, d: not ch.isspace())
-        print(start.get_offset(), end.get_offset())
         document.delete(start, end)
 
 
 def delete_sentence(document, inner):
-    insert = document.get_insert()
-    start = document.get_iter_at_mark(insert)  # type: Gtk.TextIter
+    start, end = prepare_bounds(document)
     if start.inside_sentence() or start.ends_sentence():
-        end = start.copy()
-        print(start.get_offset())
         if not start.starts_sentence():
             start.backward_sentence_start()
         if not end.ends_sentence():
             end.forward_sentence_end()
         if not inner:
             end.forward_find_char(lambda ch, d: not ch.isspace())
-        print(start.get_offset(), end.get_offset())
         document.delete(start, end)
 
 
 def delete_line(document, inner):
-    insert = document.get_insert()
-    start = document.get_iter_at_mark(insert)  # type: Gtk.TextIter
-    end = start.copy()  # type: Gtk.TextIter
-
+    start, end = prepare_bounds(document)
     if not start.starts_line():
         start.backward_line()
     if not end.ends_line():
@@ -243,5 +243,4 @@ def delete_line(document, inner):
             end.forward_to_line_end()
         else:
             end.forward_line()
-    print(start.get_offset(), end.get_offset())
     document.delete(start, end)
