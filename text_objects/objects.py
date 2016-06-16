@@ -22,6 +22,8 @@
 
 from abc import ABCMeta, abstractmethod
 
+from gi.repository import Gtk
+
 
 class TextObject(metaclass=ABCMeta):
     def __init__(self, inner: bool):
@@ -29,14 +31,15 @@ class TextObject(metaclass=ABCMeta):
 
     def delete(self, document):
         bounds = self._prepare_bounds(document)
-        if self.find_object_bounds(*bounds):
-            document.delete(*bounds)
+        object_bounds = self.find_object_bounds(*bounds)
+        if object_bounds is not None:
+            document.delete(*object_bounds)
 
     @abstractmethod
-    def find_object_bounds(self, start, end):
+    def find_object_bounds(self, start: Gtk.TextIter, end: Gtk.TextIter):
         """
-        Move iterators to mark start and end of the object.
-        Return True if object is available at the cursor position.
+        Return bounds of the text object
+        :rtype: (Gtk.TextIter, Gtk.TextIter)
         """
         pass
 
@@ -61,7 +64,7 @@ class Word(TextObject):
                 end.forward_word_end()
             if not self.inner:
                 end.forward_find_char(lambda ch, d: not ch.isspace())
-            return True
+            return start, end
 
 
 class Sentence(TextObject):
@@ -73,7 +76,7 @@ class Sentence(TextObject):
                 end.forward_sentence_end()
             if not self.inner:
                 end.forward_find_char(lambda ch, d: not ch.isspace())
-            return True
+            return start, end
 
 
 class Line(TextObject):
@@ -85,7 +88,76 @@ class Line(TextObject):
                 end.forward_to_line_end()
             else:
                 end.forward_line()
-        return True
+        return start, end
+
+
+class DelimitedObject(TextObject):
+    @staticmethod
+    @abstractmethod
+    def left_delimiter():
+        pass
+
+    @staticmethod
+    @abstractmethod
+    def right_delimiter():
+        pass
+
+    def find_object_bounds(self, start, end):
+        match = start.backward_search(self.left_delimiter(), 0)
+        if match is None:
+            return None
+        start = match[1] if self.inner else match[0]
+        match = end.forward_search(self.right_delimiter(), 0)
+        if match is None:
+            return None
+        end = match[0] if self.inner else match[1]
+        return start, end
+
+
+class Parentheses(DelimitedObject):
+    @staticmethod
+    def left_delimiter():
+        return '('
+
+    @staticmethod
+    def right_delimiter():
+        return ')'
+
+
+class Brackets(DelimitedObject):
+    @staticmethod
+    def left_delimiter():
+        return '['
+
+    @staticmethod
+    def right_delimiter():
+        return ']'
+
+
+class Braces(DelimitedObject):
+    @staticmethod
+    def left_delimiter():
+        return '{'
+
+    @staticmethod
+    def right_delimiter():
+        return '}'
+
+
+class QuotationMarks(DelimitedObject):
+    @staticmethod
+    def left_delimiter():
+        return '"'
+
+    right_delimiter = left_delimiter
+
+
+class Apostrophes(DelimitedObject):
+    @staticmethod
+    def left_delimiter():
+        return '\''
+
+    right_delimiter = left_delimiter
 
 
 class TextObjectParser:
@@ -95,9 +167,17 @@ class TextObjectParser:
     }
 
     objects = {
-        "w": ("word", Word),
-        "s": ("sentence", Sentence),
-        "l": ("line", Line),
+        'w': ("word", Word),
+        's': ("sentence", Sentence),
+        'l': ("line", Line),
+        'parenleft': ("()", Parentheses),
+        'parenright': ("()", Parentheses),
+        'bracketleft': ("[]", Brackets),
+        'bracketright': ("[]", Brackets),
+        'braceleft': ("{}", Braces),
+        'braceright': ("{}", Braces),
+        'quotedbl': ("\"\"", QuotationMarks),
+        'apostrophe': ("''", Apostrophes),
     }
 
     def __init__(self):

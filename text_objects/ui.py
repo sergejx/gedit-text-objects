@@ -27,7 +27,8 @@ from text_objects.objects import TextObjectParser
 
 class CommandCompositionWidget(Gtk.Box):
     HELP_TEXT = "next: <b>a</b>n | <b>i</b>nner" \
-                "  +  <b>w</b>ord | <b>l</b>ine | <b>s</b>entence | <b>p</b>aragraph"
+                "  +  <b>w</b>ord | <b>l</b>ine | <b>s</b>entence" \
+                " | \"…\" | '…' | (…) | […] | {…}"
 
     def __init__(self, view, revealer):
         self.view = view
