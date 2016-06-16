@@ -149,21 +149,23 @@ class CommandCompositionWidget(Gtk.Box):
             text, finished = result
             self._add_command_part(text)
             if finished:
-                print(self.parser.expression)
-                if self.parser.expression == "iw":
-                    delete_word(self.view.get_buffer(), True)
-                if self.parser.expression == "aw":
-                    delete_word(self.view.get_buffer(), False)
-                elif self.parser.expression == "is":
-                    delete_sentence(self.view.get_buffer(), True)
-                elif self.parser.expression == "as":
-                    delete_sentence(self.view.get_buffer(), False)
-                elif self.parser.expression == "il":
-                    delete_line(self.view.get_buffer(), True)
-                elif self.parser.expression == "al":
-                    delete_line(self.view.get_buffer(), False)
+                self.do_operation(self.parser.expression)
                 self.deactivate(slow=True)
         return True
+
+    def do_operation(self, text_object):
+        if text_object == "iw":
+            delete_word(self.view.get_buffer(), True)
+        if text_object == "aw":
+            delete_word(self.view.get_buffer(), False)
+        elif text_object == "is":
+            delete_sentence(self.view.get_buffer(), True)
+        elif text_object == "as":
+            delete_sentence(self.view.get_buffer(), False)
+        elif text_object == "il":
+            delete_line(self.view.get_buffer(), True)
+        elif text_object == "al":
+            delete_line(self.view.get_buffer(), False)
 
 
 class TextObjectParser:
