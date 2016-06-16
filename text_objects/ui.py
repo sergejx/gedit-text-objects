@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-#  text_objects.py (v0.1)
+#  Gedit Text Objects
 #    ~ Vim-line text objects for Gedit
 #
 #  Copyright (C) 2016 Sergej Chodarev
@@ -20,56 +20,10 @@
 #  Foundation, Inc., 59 Temple Place, Suite 330,
 #  Boston, MA 02111-1307, USA.
 
-from gi.repository import Gdk, Gedit, Gio, GObject, Gtk
+from gi.repository import Gtk, Gdk
 
-
-class TextObjectsApp(GObject.Object, Gedit.AppActivatable):
-    __gtype_name__ = 'TextObjectsApp'
-
-    app = GObject.property(type=Gedit.App)
-
-    def __init__(self):
-        GObject.Object.__init__(self)
-
-    def do_activate(self):
-        self.app.add_accelerator('<Ctrl><Shift>d', 'win.text-object-delete')
-
-    def do_deactivate(self):
-        pass
-
-
-class TextObjectsWin(GObject.Object, Gedit.WindowActivatable):
-    __gtype_name__ = 'TextObjectsWin'
-
-    window = GObject.property(type=Gedit.Window)
-
-    def __init__(self):
-        GObject.Object.__init__(self)
-
-    def do_activate(self):
-        action = Gio.SimpleAction.new('text-object-delete')
-        action.connect('activate', self.activate)
-        self.window.add_action(action)
-
-    def do_deactivate(self):
-        pass
-
-    def activate(self, action, parameter):
-        view = self.window.get_active_view()
-
-        revealer = Gtk.Revealer(valign=Gtk.Align.END)
-        revealer.set_transition_type(Gtk.RevealerTransitionType.SLIDE_UP)
-
-        popup = CommandCompositionWidget(view, revealer)
-
-        parent = view
-        while not isinstance(parent, Gtk.Overlay):
-            parent = parent.get_parent()
-        parent.add_overlay(revealer)
-        revealer.add(popup)
-        revealer.show()
-
-        popup.activate()
+from text_objects.objects import TextObjectParser, delete_word, \
+    delete_sentence, delete_line
 
 
 class CommandCompositionWidget(Gtk.Box):
@@ -166,83 +120,3 @@ class CommandCompositionWidget(Gtk.Box):
             delete_line(self.view.get_buffer(), True)
         elif text_object == "al":
             delete_line(self.view.get_buffer(), False)
-
-
-class TextObjectParser:
-    modifiers = {
-        "a": "a",
-        "i": "inner"
-    }
-
-    objects = {
-        "w": "word",
-        "s": "sentence",
-        "l": "line",
-        "p": "paragraph"
-    }
-
-    def __init__(self):
-        self.state = 1
-        self.expression = ""
-
-    def next_symbol(self, symbol: str) -> (str, bool):
-        if self.state == 1:
-            if symbol in self.modifiers:
-                self.expression += symbol
-                self.state = 2
-                return self.modifiers[symbol], False
-            else:
-                return None
-        elif self.state == 2:
-            if symbol in self.objects:
-                self.expression += symbol
-                return self.objects[symbol], True
-            else:
-                return None
-
-
-def prepare_bounds(document):
-    """
-    Give two Gtk.TextIters for marking start and end of text object
-    :rtype: Tuple(Gtk.TreeIter, Gtk.TreeIter)
-    """
-    insert = document.get_insert()
-    start = document.get_iter_at_mark(insert)
-    end = start.copy()
-    return start, end
-
-
-def delete_word(document, inner):
-    start, end = prepare_bounds(document)
-    if start.inside_word() or start.ends_word():
-        if not start.starts_word():
-            start.backward_word_start()
-        if not end.ends_word():
-            end.forward_word_end()
-        if not inner:
-            end.forward_find_char(lambda ch, d: not ch.isspace())
-        document.delete(start, end)
-
-
-def delete_sentence(document, inner):
-    start, end = prepare_bounds(document)
-    if start.inside_sentence() or start.ends_sentence():
-        if not start.starts_sentence():
-            start.backward_sentence_start()
-        if not end.ends_sentence():
-            end.forward_sentence_end()
-        if not inner:
-            end.forward_find_char(lambda ch, d: not ch.isspace())
-        document.delete(start, end)
-
-
-def delete_line(document, inner):
-    start, end = prepare_bounds(document)
-    if not start.starts_line():
-        start.backward_line()
-    if not end.ends_line():
-        if inner:
-            end.forward_to_line_end()
-        else:
-            end.forward_line()
-    document.delete(start, end)
