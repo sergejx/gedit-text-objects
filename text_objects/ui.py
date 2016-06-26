@@ -25,10 +25,13 @@ from gi.repository import Gtk, Gdk
 from text_objects.objects import TextObjectParser
 
 
+def cmd(name):
+    return "<span weight='bold' color='black'>%s</span>%s" % (name[0], name[1:])
+
+
 class CommandCompositionWidget(Gtk.Box):
-    HELP_TEXT = "next: <b>a</b>n | <b>i</b>nner" \
-                "  +  <b>w</b>ord | <b>l</b>ine | <b>s</b>entence" \
-                " | \"…\" | '…' | (…) | […] | {…}"
+    HELP_TEXT = "1. modifier:\t" + cmd("a") + " | " + cmd("inner") + "\n" \
+                "2. object:\t" + " | ".join(map(cmd, TextObjectParser.object_names()))
 
     def __init__(self, view, revealer):
         self.view = view

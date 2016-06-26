@@ -21,6 +21,7 @@
 #  Boston, MA 02111-1307, USA.
 
 from abc import ABCMeta, abstractmethod
+from collections import OrderedDict
 
 from gi.repository import Gtk
 
@@ -166,19 +167,27 @@ class TextObjectParser:
         "i": "inner"
     }
 
-    objects = {
-        'w': ("word", Word),
-        's': ("sentence", Sentence),
-        'l': ("line", Line),
-        'parenleft': ("()", Parentheses),
-        'parenright': ("()", Parentheses),
-        'bracketleft': ("[]", Brackets),
-        'bracketright': ("[]", Brackets),
-        'braceleft': ("{}", Braces),
-        'braceright': ("{}", Braces),
-        'quotedbl': ("\"\"", QuotationMarks),
-        'apostrophe': ("''", Apostrophes),
-    }
+    objects = OrderedDict([
+        ('w', ("word", Word)),
+        ('s', ("sentence", Sentence)),
+        ('l', ("line", Line)),
+        ('parenleft', ("(…)", Parentheses)),
+        ('parenright', ("(…)", Parentheses)),
+        ('bracketleft', ("[…]", Brackets)),
+        ('bracketright', ("[…]", Brackets)),
+        ('braceleft', ("{…}", Braces)),
+        ('braceright', ("{…}", Braces)),
+        ('quotedbl', ("\"…\"", QuotationMarks)),
+        ('apostrophe', ("'…'", Apostrophes)),
+    ])
+
+    @classmethod
+    def object_names(cls):
+        object_names = []
+        for name, _ in cls.objects.values():
+            if name not in object_names:
+                object_names.append(name)
+        return object_names
 
     def __init__(self):
         self.state = 1
