@@ -31,11 +31,12 @@ def cmd(name):
 
 class CommandCompositionWidget(Gtk.Box):
     HELP_TEXT = "1. modifier:\t" + cmd("a") + " | " + cmd("inner") + "\n" \
-                "2. object:\t" + " | ".join(map(cmd, TextObjectParser.object_names()))
+                "2. object:  \t" + " | ".join(map(cmd, TextObjectParser.object_names()))
 
-    def __init__(self, view, revealer):
+    def __init__(self, view, revealer, operation):
         self.view = view
         self.revealer = revealer
+        self.operation = operation
         self.key_handler = None
         super(CommandCompositionWidget, self).__init__(name='text-object-popup')
         self.set_orientation(Gtk.Orientation.VERTICAL)
@@ -45,7 +46,7 @@ class CommandCompositionWidget(Gtk.Box):
                                    margin_left=8, margin_top=4)
         self.pack_start(self.command_box, False, False, 0)
 
-        self._add_command_part("Delete")
+        self._add_command_part(operation.capitalize())
 
         help_label = Gtk.Label(label=self.HELP_TEXT, use_markup=True,
                                halign=Gtk.Align.START, margin_left=8)
@@ -111,4 +112,7 @@ class CommandCompositionWidget(Gtk.Box):
         return True
 
     def do_operation(self, text_object):
-        text_object.delete(self.view.get_buffer())
+        if self.operation == 'delete':
+            text_object.delete(self.view.get_buffer())
+        elif self.operation == 'select':
+            text_object.select(self.view.get_buffer())

@@ -35,7 +35,10 @@ class TextObjectsApp(GObject.Object, Gedit.AppActivatable):
 
     def do_activate(self):
         self.app.add_accelerator('<Ctrl><Shift>d', 'win.text-object-operation',
-                                 GLib.Variant.new_string('d'))
+                                 GLib.Variant.new_string('delete'))
+        self.app.add_accelerator('<Ctrl><Shift>space',
+                                 'win.text-object-operation',
+                                 GLib.Variant.new_string('select'))
 
     def do_deactivate(self):
         pass
@@ -64,7 +67,7 @@ class TextObjectsWin(GObject.Object, Gedit.WindowActivatable):
         revealer = Gtk.Revealer(valign=Gtk.Align.END)
         revealer.set_transition_type(Gtk.RevealerTransitionType.SLIDE_UP)
 
-        popup = CommandCompositionWidget(view, revealer)
+        popup = CommandCompositionWidget(view, revealer, parameter.get_string())
 
         parent = view
         while not isinstance(parent, Gtk.Overlay):

@@ -36,6 +36,12 @@ class TextObject(metaclass=ABCMeta):
         if object_bounds is not None:
             document.delete(*object_bounds)
 
+    def select(self, document):
+        bounds = self._prepare_bounds(document)
+        object_bounds = self.find_object_bounds(*bounds)
+        if object_bounds is not None:
+            document.select_range(*object_bounds)
+
     @abstractmethod
     def find_object_bounds(self, start: Gtk.TextIter, end: Gtk.TextIter):
         """
