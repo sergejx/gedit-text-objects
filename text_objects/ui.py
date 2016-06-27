@@ -61,7 +61,7 @@ class CommandCompositionWidget(Gtk.Box):
             padding: 2px 4px;
         }
         #text-object-popup {
-            background-color: #e9b96e;
+            background-color: #e9cfa7;
             color: #2e3436;
         }
         #text-object-entry {
